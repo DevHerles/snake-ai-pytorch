@@ -5,8 +5,9 @@ from collections import namedtuple
 import numpy as np
 
 pygame.init()
-font = pygame.font.Font('arial.ttf', 25)
+font = pygame.font.Font('arial.ttf', 16)
 #font = pygame.font.SysFont('arial', 25)
+
 
 class Direction(Enum):
     RIGHT = 1
@@ -14,17 +15,19 @@ class Direction(Enum):
     UP = 3
     DOWN = 4
 
+
 Point = namedtuple('Point', 'x, y')
 
 # rgb colors
 WHITE = (255, 255, 255)
-RED = (200,0,0)
+RED = (200, 0, 0)
 BLUE1 = (0, 0, 255)
 BLUE2 = (0, 100, 255)
-BLACK = (0,0,0)
+BLACK = (0, 0, 0)
 
 BLOCK_SIZE = 20
 SPEED = 40
+
 
 class SnakeGameAI:
 
@@ -35,8 +38,9 @@ class SnakeGameAI:
         self.display = pygame.display.set_mode((self.w, self.h))
         pygame.display.set_caption('Snake')
         self.clock = pygame.time.Clock()
+        self.record = 0
+        self.times = 0
         self.reset()
-
 
     def reset(self):
         # init game state
@@ -52,14 +56,12 @@ class SnakeGameAI:
         self._place_food()
         self.frame_iteration = 0
 
-
     def _place_food(self):
-        x = random.randint(0, (self.w-BLOCK_SIZE )//BLOCK_SIZE )*BLOCK_SIZE
-        y = random.randint(0, (self.h-BLOCK_SIZE )//BLOCK_SIZE )*BLOCK_SIZE
+        x = random.randint(0, (self.w-BLOCK_SIZE)//BLOCK_SIZE)*BLOCK_SIZE
+        y = random.randint(0, (self.h-BLOCK_SIZE)//BLOCK_SIZE)*BLOCK_SIZE
         self.food = Point(x, y)
         if self.food in self.snake:
             self._place_food()
-
 
     def play_step(self, action):
         self.frame_iteration += 1
@@ -68,11 +70,11 @@ class SnakeGameAI:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
-        
+
         # 2. move
-        self._move(action) # update the head
+        self._move(action)  # update the head
         self.snake.insert(0, self.head)
-        
+
         # 3. check if game over
         reward = 0
         game_over = False
@@ -88,13 +90,12 @@ class SnakeGameAI:
             self._place_food()
         else:
             self.snake.pop()
-        
+
         # 5. update ui and clock
         self._update_ui()
         self.clock.tick(SPEED)
         # 6. return game over and score
         return reward, game_over, self.score
-
 
     def is_collision(self, pt=None):
         if pt is None:
@@ -108,35 +109,43 @@ class SnakeGameAI:
 
         return False
 
-
     def _update_ui(self):
         self.display.fill(BLACK)
 
-        for pt in self.snake:
-            pygame.draw.rect(self.display, BLUE1, pygame.Rect(pt.x, pt.y, BLOCK_SIZE, BLOCK_SIZE))
-            pygame.draw.rect(self.display, BLUE2, pygame.Rect(pt.x+4, pt.y+4, 12, 12))
+        for index, pt in enumerate(self.snake):
+            pygame.draw.rect(self.display, RED if index == 0 else BLUE1, pygame.Rect(
+                pt.x, pt.y, BLOCK_SIZE, BLOCK_SIZE))
+            pygame.draw.rect(self.display, WHITE if index == 0 else BLUE2,
+                             pygame.Rect(pt.x+4, pt.y+4, 12, 12))
 
-        pygame.draw.rect(self.display, RED, pygame.Rect(self.food.x, self.food.y, BLOCK_SIZE, BLOCK_SIZE))
+        pygame.draw.rect(self.display, RED, pygame.Rect(
+            self.food.x, self.food.y, BLOCK_SIZE, BLOCK_SIZE))
 
-        text = font.render("Score: " + str(self.score), True, WHITE)
+        text = font.render("Game #: " + str(self.times), True, WHITE)
         self.display.blit(text, [0, 0])
+        text = font.render("High score: " + str(self.record), True, WHITE)
+        self.display.blit(text, [0, 20])
+        text = font.render("Score: " + str(self.score), True, WHITE)
+        self.display.blit(text, [0, 40])
+        text = font.render("Direction: " + str(self.direction), True, WHITE)
+        self.display.blit(text, [0, 60])
         pygame.display.flip()
-
 
     def _move(self, action):
         # [straight, right, left]
 
-        clock_wise = [Direction.RIGHT, Direction.DOWN, Direction.LEFT, Direction.UP]
+        clock_wise = [Direction.RIGHT, Direction.DOWN,
+                      Direction.LEFT, Direction.UP]
         idx = clock_wise.index(self.direction)
 
         if np.array_equal(action, [1, 0, 0]):
-            new_dir = clock_wise[idx] # no change
+            new_dir = clock_wise[idx]  # no change
         elif np.array_equal(action, [0, 1, 0]):
             next_idx = (idx + 1) % 4
-            new_dir = clock_wise[next_idx] # right turn r -> d -> l -> u
-        else: # [0, 0, 1]
+            new_dir = clock_wise[next_idx]  # right turn r -> d -> l -> u
+        else:  # [0, 0, 1]
             next_idx = (idx - 1) % 4
-            new_dir = clock_wise[next_idx] # left turn r -> u -> l -> d
+            new_dir = clock_wise[next_idx]  # left turn r -> u -> l -> d
 
         self.direction = new_dir
 
